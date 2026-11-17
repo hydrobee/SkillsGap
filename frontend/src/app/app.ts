@@ -1,12 +1,11 @@
 import { Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { Auth } from './core/auth';
-import { ThemeToggle } from './core/theme';
 import { initials } from './core/util';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, ThemeToggle],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive],
   template: `
     @if (auth.user(); as u) {
       <header class="topbar no-print">
@@ -27,7 +26,6 @@ import { initials } from './core/util';
             }
             @if (u.role === 'hr') { <a routerLink="/setup" routerLinkActive="active">HR setup</a> }
           </nav>
-          <app-theme-toggle />
           <div class="who">
             <span class="avatar" aria-hidden="true">{{ initials(u.name) }}</span>
             <span class="who-text">
@@ -42,8 +40,6 @@ import { initials } from './core/util';
           </div>
         </div>
       </header>
-    } @else {
-      <app-theme-toggle class="no-print" [floating]="true" />
     }
     <main><router-outlet /></main>
   `,
