@@ -1,0 +1,30 @@
+# Secrets – never commit these (backend/.env holds your DB password and JWT secret)
+.env
+.env.*
+!.env.example
+
+# Python
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+
+# Local databases and logs
+*.db
+*.sqlite3
+*.log
+
+# Node / Angular
+node_modules/
+dist/
+.angular/
+out-tsc/
+*.tsbuildinfo
+
+# Editor and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
