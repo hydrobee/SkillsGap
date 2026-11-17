@@ -24,5 +24,7 @@ export function downloadCsv(filename: string, header: string[], rows: (string | 
 
 /** "Aiman Bin Ali" -> "AB" for avatar badges. */
 export function initials(name: string): string {
-  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
+  // ignore bracketed / punctuation words, e.g. "Dayang (Academic Supervisor)" -> "DA"
+  const words = name.replace(/[()[\]]/g, ' ').split(/\s+/).filter((w) => /^\p{L}/u.test(w));
+  return words.slice(0, 2).map((w) => w[0].toUpperCase()).join('') || '?';
 }

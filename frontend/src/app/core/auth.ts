@@ -42,7 +42,7 @@ export class Auth {
   /** Where each role lands after login. */
   homePath(): string {
     switch (this.role()) {
-      case 'hr': return '/setup';
+      case 'hr': return '/dashboard';
       case 'supervisor': return '/rating';
       case 'staff': return '/survey';
       default: return '/login';

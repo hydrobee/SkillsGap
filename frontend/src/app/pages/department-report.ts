@@ -1,7 +1,7 @@
 import { DecimalPipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { Api } from '../core/api';
 import { Category, Cycle, DeptReport, DeptStaff, NamedItem } from '../core/models';
@@ -143,6 +143,7 @@ import { downloadCsv, errMsg, initials } from '../core/util';
 })
 export class DepartmentReportPage implements OnInit {
   private api = inject(Api);
+  private route = inject(ActivatedRoute);
   depts = signal<NamedItem[]>([]);
   cycles = signal<Cycle[]>([]);
   deptId = signal<number | null>(null);
@@ -164,8 +165,12 @@ export class DepartmentReportPage implements OnInit {
       next: ({ depts, cycles }) => {
         this.depts.set(depts);
         this.cycles.set(cycles);
-        this.deptId.set(depts[0]?.id ?? null);
-        this.cycleId.set(cycles[0]?.id ?? null);
+        // ?dept=…&cycle=… lets the HR dashboard link straight to a department
+        const q = this.route.snapshot.queryParamMap;
+        const wantDept = Number(q.get('dept'));
+        const wantCycle = Number(q.get('cycle'));
+        this.deptId.set(depts.find((d) => d.id === wantDept)?.id ?? depts[0]?.id ?? null);
+        this.cycleId.set(cycles.find((c) => c.id === wantCycle)?.id ?? cycles[0]?.id ?? null);
         this.load();
       },
       error: (e) => this.error.set(errMsg(e)),

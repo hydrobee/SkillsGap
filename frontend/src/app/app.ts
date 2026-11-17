@@ -18,6 +18,7 @@ import { initials } from './core/util';
             SkillsGap
           </a>
           <nav class="nav" aria-label="Main">
+            @if (u.role === 'hr') { <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a> }
             @if (u.role !== 'hr') { <a routerLink="/survey" routerLinkActive="active">My survey</a> }
             @if (u.role === 'supervisor') { <a routerLink="/rating" routerLinkActive="active">Rate my team</a> }
             <a routerLink="/reports/individual" routerLinkActive="active">Individual report</a>
