@@ -54,3 +54,31 @@ export interface SetupScope {
   questions: SetupQuestion[];
 }
 export interface SetupOverview { job_scopes: SetupScope[]; competencies: NamedItem[]; departments: NamedItem[]; }
+
+// ---------- HR dashboard ----------
+export type SurveyState = 'Complete' | 'In progress' | 'Not started';
+export interface DashPerson {
+  id: number; name: string; role: Role; department: string | null; supervisor: string | null;
+  survey: SurveyState; answered: number; questions: number;
+  rating: string | null; rated: number; rating_total: number;
+  critical: number; moderate: number; avg_gap: number | null;
+}
+export interface DashDept {
+  id: number; name: string; staff_total: number; assessed: number; survey_complete: number;
+  rating_needed: number; rating_complete: number; avg_gap: number | null;
+  critical_staff: number; top_priority: string | null;
+}
+export interface Dashboard {
+  cycle: Cycle;
+  totals: {
+    staff: number; survey_complete: number; survey_in_progress: number; survey_not_started: number;
+    rating_needed: number; rating_complete: number; assessed: number;
+    staff_with_critical: number; avg_gap: number | null;
+  };
+  categories: Record<Category, number>;
+  priorities: (Omit<DeptRow, 'staff'> & { rank: number })[];
+  departments: DashDept[];
+  survey_pending: DashPerson[];
+  pending_supervisors: { id: number; name: string; pending: number; team: number }[];
+  attention: DashPerson[];
+}

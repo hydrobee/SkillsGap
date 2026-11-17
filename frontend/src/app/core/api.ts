@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { API_URL } from './config';
 import {
-  Cycle, DeptReport, IndividualReport, LoginResponse, NamedItem, Person, RatingView,
+  Cycle, Dashboard, DeptReport, IndividualReport, LoginResponse, NamedItem, Person, RatingView,
   SetupOverview, SurveyView, TeamView,
 } from './models';
 
@@ -40,6 +40,10 @@ export class Api {
   departments() { return this.http.get<NamedItem[]>(this.u('/reports/departments')); }
   department(id: number, cycleId?: number | null) {
     return this.http.get<DeptReport>(this.u(`/reports/department/${id}`), this.cyc(cycleId));
+  }
+
+  dashboard(cycleId?: number | null) {
+    return this.http.get<Dashboard>(this.u('/reports/dashboard'), this.cyc(cycleId));
   }
 
   // HR setup

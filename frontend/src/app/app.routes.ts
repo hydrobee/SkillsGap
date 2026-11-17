@@ -24,6 +24,10 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/department-report').then((m) => m.DepartmentReportPage),
   },
   {
+    path: 'dashboard', canActivate: [roleGuard('hr')],
+    loadComponent: () => import('./pages/dashboard').then((m) => m.DashboardPage),
+  },
+  {
     path: 'setup', canActivate: [roleGuard('hr')],
     loadComponent: () => import('./pages/setup').then((m) => m.SetupPage),
   },
