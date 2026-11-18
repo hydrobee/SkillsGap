@@ -5,6 +5,16 @@ and the system shows the gap so HR can plan training.
 
 **Stack:** Angular 21 · FastAPI · PostgreSQL (SQLAlchemy). Tests: pytest.
 
+## What each role can do
+- **Staff:** answer the survey for their job scope and view their own gap report.
+- **Supervisors:** do the same, rate each competency of their direct reports, and view their reports' results and their own
+  department report.
+- **HR:** use the dashboard, open any individual or department report, and manage job scopes, competencies, required levels,
+  questions and yearly assessment cycles (create, copy levels, close, reopen, delete).
+
+The **HR dashboard** shows one cycle at a glance: survey and rating completion, the gap distribution, training priorities,
+progress per department, and who still needs follow-up.
+
 ## Run it
 
 **1. Database** (once)
@@ -52,9 +62,18 @@ npx ng serve                       # http://localhost:4200
 cd backend
 pytest -v
 ```
-`tests/test_gap.py` covers the gap calculation. `tests/test_reports.py` covers report roll-ups.
-`tests/test_api.py` and `tests/test_setup.py` run survey → rating → report and the access rules against a
-temporary SQLite file, so they never touch the Postgres data.
+All tests use a temporary SQLite file or an in-memory database, so they never touch the Postgres data.
+
+| File | Covers |
+| --- | --- |
+| `tests/test_gap.py` | The gap calculation |
+| `tests/test_reports.py` | Report sorting, summaries and roll-ups |
+| `tests/test_api.py` | Survey → rating → report, the access rules and the HR dashboard |
+| `tests/test_setup.py` | HR setup of job scopes, competencies, levels and questions |
+| `tests/test_delete_setup.py` | When job scopes and competencies can be deleted |
+| `tests/test_year_levels.py` | Required levels per year, and copying or deleting a year |
+| `tests/test_demo_seed.py` | The optional `--demo` seed data |
+| `tests/test_wording.py` | The unused first-person to third-person wording helper |
 
 ## How the gap is calculated
 1. Negatively worded answers are reversed first: `6 − answer`.
@@ -83,14 +102,17 @@ temporary SQLite file, so they never touch the Postgres data.
 - A job scope can be deleted only when no staff are assigned to it and none of its questions have answers. Deleting it
   also deletes its questions and its required levels in every year. A competency can be deleted only when no job scope
   uses it in any year and nobody has been rated on it. Otherwise HR sees a message saying what to remove first.
-- Questions that staff have already answered cannot be deleted or flipped between positive and negative.
-
+- A question that staff have already answered cannot be flipped between positive and negative. Its text can still be edited.
+  Deleting it requires HR to confirm, and also deletes its answers.
 - `app/services/wording.py` and `tests/test_wording.py` are no longer used by the rating flow.
-- The old `supervisor_answers` table is no longer used and can be dropped.
+- The old `supervisor_answers` table is no longer used and can be dropped. Ratings stored in it are not carried over to the
+  competency ratings.
 
 ## Access rules
 Staff see only their own results. Supervisors see themselves and their direct reports, and only their own
-department report. HR sees everything. These are checked on the server for every request, not just hidden in the UI.
+department report. HR sees everything, and only HR can use the dashboard and setup. These are checked on the server for
+every request, not just hidden in the UI.
 
 ## Not done
-Password change.
+- Password change.
+- Managing user accounts in the app. Users and departments currently come from the seed data.
