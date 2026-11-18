@@ -23,3 +23,8 @@ class QuestionUpdate(BaseModel):
 
 class CycleCreate(BaseModel):
     year: int = Field(ge=2000, le=2100)
+    copy_from_cycle_id: int | None = None  # clone that year's required levels into the new year
+
+
+class CopyLevelsIn(BaseModel):
+    from_cycle_id: int

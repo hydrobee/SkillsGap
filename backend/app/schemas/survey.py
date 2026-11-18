@@ -12,7 +12,7 @@ class SurveySubmit(BaseModel):
 
 
 class RatingIn(BaseModel):
-    question_id: int
+    competency_id: int
     rating: int = Field(ge=1, le=5)
 
 

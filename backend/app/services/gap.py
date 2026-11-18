@@ -19,12 +19,6 @@ def self_score(answers: list[tuple[int, bool]]) -> float:
     return sum(adjusted) / len(adjusted)
 
 
-def supervisor_score(answers: list[tuple[int, bool]]) -> float | None:
-    """Same reversal and averaging as self_score, but for the supervisor's answers.
-    None means the supervisor has not answered any question of this competency yet."""
-    return self_score(answers) if answers else None
-
-
 def actual_level(self_avg: float, supervisor: float | None) -> float:
     """70% supervisor + 30% self. If the supervisor has not rated yet,
     fall back to the self score only (assumption: report shows 'pending')."""

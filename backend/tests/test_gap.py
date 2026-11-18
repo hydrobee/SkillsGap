@@ -1,6 +1,6 @@
 import pytest
 from app.services.gap import (adjust_answer, self_score, actual_level,
-                              gap_value, categorise, competency_result, supervisor_score)
+                              gap_value, categorise, competency_result)
 
 
 def test_negative_answer_is_reversed():
@@ -70,16 +70,8 @@ def test_invalid_answer_rejected():
         adjust_answer(6, False)
 
 
-def test_supervisor_score_reverses_negative_questions():
-    # q1 = 4 (normal), q2 = 2 (negative -> 4)  => 4.0
-    assert supervisor_score([(4, False), (2, True)]) == 4.0
-
-
-def test_supervisor_score_none_when_no_answers():
-    assert supervisor_score([]) is None
-
-
-def test_competency_result_uses_averaged_supervisor_score():
-    # self 2.0, supervisor answers 4 and 2(negative -> 4) = 4.0 -> actual 0.7*4 + 0.3*2 = 3.4
-    r = competency_result(4, [(2, False)], supervisor_score([(4, False), (2, True)]))
-    assert r["supervisor"] == 4.0 and r["actual"] == 3.4 and r["gap"] == 0.6
+def test_supervisor_rating_is_used_directly():
+    # self 2.0 (one answer), supervisor rating 4 -> actual 0.7*4 + 0.3*2 = 3.4 -> gap 0.6
+    r = competency_result(4, [(2, False)], 4)
+    assert r["supervisor"] == 4 and r["actual"] == 3.4 and r["gap"] == 0.6
+    assert r["category"] == "Minor" and r["supervisor_pending"] is False

@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { API_URL } from './config';
 import {
-  Cycle, Dashboard, DeptReport, IndividualReport, LoginResponse, NamedItem, Person, RatingView,
+  Cycle, CycleSummary, Dashboard, DeptReport, IndividualReport, LoginResponse, NamedItem, Person, RatingView,
   SetupOverview, SurveyView, TeamView,
 } from './models';
 
@@ -27,7 +27,7 @@ export class Api {
   // supervisor rating
   team() { return this.http.get<TeamView>(this.u('/rating/team')); }
   ratings(staffId: number) { return this.http.get<RatingView>(this.u(`/rating/${staffId}`)); }
-  saveRatings(staffId: number, cycleId: number, ratings: { question_id: number; rating: number }[]) {
+  saveRatings(staffId: number, cycleId: number, ratings: { competency_id: number; rating: number }[]) {
     return this.http.put(this.u(`/rating/${staffId}`), { cycle_id: cycleId, ratings });
   }
 
@@ -47,14 +47,16 @@ export class Api {
   }
 
   // HR setup
-  overview() { return this.http.get<SetupOverview>(this.u('/setup/overview')); }
+  overview(cycleId?: number | null) { return this.http.get<SetupOverview>(this.u('/setup/overview'), this.cyc(cycleId)); }
   createScope(name: string) { return this.http.post(this.u('/setup/job-scopes'), { name }); }
   createCompetency(name: string) { return this.http.post(this.u('/setup/competencies'), { name }); }
-  setLevel(scopeId: number, compId: number, level: number) {
-    return this.http.put(this.u(`/setup/job-scopes/${scopeId}/competencies/${compId}`), { required_level: level });
+  deleteScope(id: number) { return this.http.delete(this.u(`/setup/job-scopes/${id}`)); }
+  deleteCompetency(id: number) { return this.http.delete(this.u(`/setup/competencies/${id}`)); }
+  setLevel(scopeId: number, compId: number, level: number, cycleId?: number | null) {
+    return this.http.put(this.u(`/setup/job-scopes/${scopeId}/competencies/${compId}`), { required_level: level }, this.cyc(cycleId));
   }
-  removeLevel(scopeId: number, compId: number) {
-    return this.http.delete(this.u(`/setup/job-scopes/${scopeId}/competencies/${compId}`));
+  removeLevel(scopeId: number, compId: number, cycleId?: number | null) {
+    return this.http.delete(this.u(`/setup/job-scopes/${scopeId}/competencies/${compId}`), this.cyc(cycleId));
   }
   createQuestion(q: { job_scope_id: number; competency_id: number; text: string; is_negative: boolean }) {
     return this.http.post(this.u('/setup/questions'), q);
@@ -65,8 +67,16 @@ export class Api {
   deleteQuestion(id: number, force = false) {
     return this.http.delete(this.u(`/setup/questions/${id}`), force ? { params: new HttpParams().set('force', true) } : {});
   }
-  listCycles() { return this.http.get<Cycle[]>(this.u('/setup/cycles')); }
-  createCycle(year: number) { return this.http.post(this.u('/setup/cycles'), { year }); }
+  listCycles() { return this.http.get<CycleSummary[]>(this.u('/setup/cycles')); }
+  createCycle(year: number, copyFromCycleId?: number | null) {
+    return this.http.post(this.u('/setup/cycles'), { year, copy_from_cycle_id: copyFromCycleId ?? null });
+  }
+  copyLevels(cycleId: number, fromCycleId: number) {
+    return this.http.post(this.u(`/setup/cycles/${cycleId}/copy-levels`), { from_cycle_id: fromCycleId });
+  }
+  deleteCycle(cycleId: number, force = false) {
+    return this.http.delete(this.u(`/setup/cycles/${cycleId}`), force ? { params: new HttpParams().set('force', true) } : {});
+  }
   closeCycle(id: number) { return this.http.post(this.u(`/setup/cycles/${id}/close`), {}); }
   openCycle(id: number) { return this.http.post(this.u(`/setup/cycles/${id}/open`), {}); }
 }

@@ -1,11 +1,19 @@
-"""Run from the backend folder:  python -m app.seed
-Safe to run twice: it skips if data already exists."""
+"""Run from the backend folder:
+
+    python -m app.seed            # job scopes, competencies, the 15 questions, demo users
+    python -m app.seed --demo     # the same, plus sample survey answers and supervisor
+                                  # competency ratings for the 2026 cycle (so reports have data)
+
+Safe to run twice: each part is skipped if its data already exists."""
+import sys
+
 from sqlalchemy import select
 
 from app.core.database import Base, SessionLocal, engine
 from app.core.security import hash_password
 from app.models import (AssessmentCycle, Competency, Department, JobScope,
-                        JobScopeCompetency, Question, User)
+                        JobScopeCompetency, Question, SupervisorRating,
+                        SurveyAnswer, User)
 
 PASSWORD = "password123"
 
@@ -49,54 +57,110 @@ USERS = [
 ]
 
 
-def run():
+# Optional demo assessment data, keyed by staff email.
+#   answers: one 1-5 answer per survey question of their job scope, in question order
+#            (negatively worded questions are reversed when scored)
+#   ratings: the supervisor's direct 1-5 rating per competency
+DEMO = {
+    "bella@demo.com": {"answers": [4, 2, 3, 4, 3],
+                       "ratings": {"Programming": 4, "Database": 3, "Security": 3}},
+    "chris@demo.com": {"answers": [3, 4, 2, 2, 1],
+                       "ratings": {"Programming": 3, "Database": 2, "Security": 2}},
+    "edwin@demo.com": {"answers": [4, 2, 3, 3, 4],
+                       "ratings": {"Teaching Delivery": 4, "Assessment": 3, "Digital Tools": 2}},
+    "gina@demo.com": {"answers": [3, 2, 3, 4, 2],
+                      "ratings": {"Records Management": 3, "Customer Service": 1,
+                                  "Office Productivity": 2}},
+}
+
+
+def seed_base(db) -> bool:
+    """Create the reference data and demo users. Returns False if it already exists."""
+    if db.scalar(select(Department)):
+        return False
+    comps, scopes, depts = {}, {}, {}
+    cycle = AssessmentCycle(year=2026, is_open=True)
+    db.add(cycle)
+    db.flush()
+    for scope_name, rows in SEED.items():
+        scope = JobScope(name=scope_name)
+        db.add(scope)
+        db.flush()
+        scopes[scope_name] = scope
+        done = set()
+        for comp_name, level, text, neg in rows:
+            if comp_name not in comps:
+                comps[comp_name] = Competency(name=comp_name)
+                db.add(comps[comp_name])
+                db.flush()
+            comp = comps[comp_name]
+            if comp_name not in done:  # required level stored once per scope+competency
+                db.add(JobScopeCompetency(job_scope_id=scope.id,
+                                          competency_id=comp.id,
+                                          cycle_id=cycle.id,
+                                          required_level=level))
+                done.add(comp_name)
+            db.add(Question(job_scope_id=scope.id, competency_id=comp.id,
+                            text=text, is_negative=neg))
+    for dept_name in DEPARTMENTS:
+        depts[dept_name] = Department(name=dept_name)
+        db.add(depts[dept_name])
+    db.flush()
+
+    by_email = {}
+    for name, email, role, dept, scope, sup_email in USERS:
+        u = User(name=name, email=email, role=role,
+                 password_hash=hash_password(PASSWORD),
+                 department_id=depts[dept].id if dept else None,
+                 job_scope_id=scopes[scope].id if scope else None,
+                 supervisor_id=by_email[sup_email].id if sup_email else None)
+        db.add(u)
+        db.flush()
+        by_email[email] = u
+    db.commit()
+    return True
+
+
+def seed_demo(db) -> bool:
+    """Add sample staff answers and supervisor competency ratings to the latest cycle.
+    Returns False (and adds nothing) if any answers or ratings already exist."""
+    if db.scalar(select(SurveyAnswer)) or db.scalar(select(SupervisorRating)):
+        return False
+    cycle = db.scalar(select(AssessmentCycle).order_by(AssessmentCycle.year.desc()))
+    users = {u.email: u for u in db.scalars(select(User))}
+    comp_ids = {c.name: c.id for c in db.scalars(select(Competency))}
+    if cycle is None or not all(e in users for e in DEMO):
+        return False
+    for email, data in DEMO.items():
+        staff = users[email]
+        questions = list(db.scalars(select(Question).where(Question.job_scope_id == staff.job_scope_id)
+                                    .order_by(Question.id)))
+        for q, answer in zip(questions, data["answers"]):
+            db.add(SurveyAnswer(user_id=staff.id, cycle_id=cycle.id, question_id=q.id, answer=answer))
+        for comp_name, rating in data["ratings"].items():
+            db.add(SupervisorRating(supervisor_id=staff.supervisor_id, staff_id=staff.id,
+                                    cycle_id=cycle.id, competency_id=comp_ids[comp_name],
+                                    rating=rating))
+    db.commit()
+    return True
+
+
+def run(demo: bool = False):
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
-        if db.scalar(select(Department)):
+        if seed_base(db):
+            print(f"Seeded. All demo users use password: {PASSWORD}")
+        else:
             print("Already seeded, skipping.")
-            return
-        comps, scopes, depts = {}, {}, {}
-        for scope_name, rows in SEED.items():
-            scope = JobScope(name=scope_name)
-            db.add(scope)
-            db.flush()
-            scopes[scope_name] = scope
-            done = set()
-            for comp_name, level, text, neg in rows:
-                if comp_name not in comps:
-                    comps[comp_name] = Competency(name=comp_name)
-                    db.add(comps[comp_name])
-                    db.flush()
-                comp = comps[comp_name]
-                if comp_name not in done:  # required level stored once per scope+competency
-                    db.add(JobScopeCompetency(job_scope_id=scope.id,
-                                              competency_id=comp.id,
-                                              required_level=level))
-                    done.add(comp_name)
-                db.add(Question(job_scope_id=scope.id, competency_id=comp.id,
-                                text=text, is_negative=neg))
-        for dept_name in DEPARTMENTS:
-            depts[dept_name] = Department(name=dept_name)
-            db.add(depts[dept_name])
-        db.add(AssessmentCycle(year=2026, is_open=True))
-        db.flush()
-
-        by_email = {}
-        for name, email, role, dept, scope, sup_email in USERS:
-            u = User(name=name, email=email, role=role,
-                     password_hash=hash_password(PASSWORD),
-                     department_id=depts[dept].id if dept else None,
-                     job_scope_id=scopes[scope].id if scope else None,
-                     supervisor_id=by_email[sup_email].id if sup_email else None)
-            db.add(u)
-            db.flush()
-            by_email[email] = u
-        db.commit()
-        print(f"Seeded. All demo users use password: {PASSWORD}")
+        if demo:
+            if seed_demo(db):
+                print("Demo data added: sample survey answers and supervisor ratings for the latest cycle.")
+            else:
+                print("Demo data skipped: answers or ratings already exist.")
     finally:
         db.close()
 
 
 if __name__ == "__main__":
-    run()
+    run(demo="--demo" in sys.argv)

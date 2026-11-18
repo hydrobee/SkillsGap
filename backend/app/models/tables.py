@@ -24,15 +24,16 @@ class Competency(Base):
 
 
 class JobScopeCompetency(Base):
-    """Required level of a competency for a job scope."""
+    """Required level of a competency for a job scope, in one assessment cycle (year)."""
     __tablename__ = "job_scope_competencies"
     __table_args__ = (
-        UniqueConstraint("job_scope_id", "competency_id"),
+        UniqueConstraint("job_scope_id", "competency_id", "cycle_id"),
         CheckConstraint("required_level BETWEEN 1 AND 5"),
     )
     id: Mapped[int] = mapped_column(primary_key=True)
     job_scope_id: Mapped[int] = mapped_column(ForeignKey("job_scopes.id"))
     competency_id: Mapped[int] = mapped_column(ForeignKey("competencies.id"))
+    cycle_id: Mapped[int] = mapped_column(ForeignKey("assessment_cycles.id"))
     required_level: Mapped[int] = mapped_column(Integer)
     competency: Mapped[Competency] = relationship()
 
@@ -78,17 +79,16 @@ class SurveyAnswer(Base):
     answer: Mapped[int] = mapped_column(Integer)  # raw answer, reverse in gap.py
 
 
-class SupervisorAnswer(Base):
-    """The supervisor's answer to one survey question about one staff member (1-5).
-    Same questions as the staff survey; negatively worded ones are reversed in gap.py."""
-    __tablename__ = "supervisor_answers"
+class SupervisorRating(Base):
+    """The supervisor's rating (1-5) of one competency of one staff member in one cycle."""
+    __tablename__ = "supervisor_ratings"
     __table_args__ = (
-        UniqueConstraint("staff_id", "cycle_id", "question_id"),
-        CheckConstraint("answer BETWEEN 1 AND 5"),
+        UniqueConstraint("staff_id", "cycle_id", "competency_id"),
+        CheckConstraint("rating BETWEEN 1 AND 5"),
     )
     id: Mapped[int] = mapped_column(primary_key=True)
     supervisor_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     staff_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     cycle_id: Mapped[int] = mapped_column(ForeignKey("assessment_cycles.id"))
-    question_id: Mapped[int] = mapped_column(ForeignKey("questions.id"))
-    answer: Mapped[int] = mapped_column(Integer)
+    competency_id: Mapped[int] = mapped_column(ForeignKey("competencies.id"))
+    rating: Mapped[int] = mapped_column(Integer)
