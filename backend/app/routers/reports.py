@@ -6,6 +6,7 @@ from app.core.database import get_db
 from app.core.security import assert_can_view, get_current_user
 from app.models import AssessmentCycle, Department, JobScope, User
 from app.services.cycles import get_cycle
+from app.services.dashboard import hr_dashboard
 from app.services.reports import department_report, individual_report
 
 router = APIRouter(prefix="/reports", tags=["reports"])
@@ -77,3 +78,12 @@ def department(department_id: int, cycle_id: int | None = None,
     if not allowed:
         raise HTTPException(403, "You cannot view this department report")
     return department_report(db, dept, get_cycle(db, cycle_id))
+
+
+@router.get("/dashboard")
+def dashboard(cycle_id: int | None = None, viewer: User = Depends(get_current_user),
+              db: Session = Depends(get_db)):
+    """Organisation-wide snapshot for HR: completion, gaps, priorities and follow-ups."""
+    if viewer.role != "hr":
+        raise HTTPException(403, "The dashboard is for HR")
+    return hr_dashboard(db, get_cycle(db, cycle_id))

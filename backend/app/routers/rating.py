@@ -1,21 +1,30 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import require_role
-from app.models import (Competency, JobScopeCompetency, Question,
-                        SupervisorAnswer, User)
+from app.models import Competency, JobScopeCompetency, SupervisorRating, User
 from app.schemas.survey import RatingSubmit
 from app.services.cycles import assert_open, get_cycle
 
 router = APIRouter(prefix="/rating", tags=["supervisor rating"])
 
 
-def _questions(db: Session, staff: User) -> list[Question]:
-    """The supervisor answers the same questions as the staff member's job scope survey."""
-    return list(db.scalars(select(Question).where(Question.job_scope_id == staff.job_scope_id)
-                           .order_by(Question.id)))
+def _competencies(db: Session, staff: User, cycle_id: int) -> list[tuple[Competency, int]]:
+    """The competencies of the staff member's job scope for this cycle, with the required level of each."""
+    rows = db.execute(select(Competency, JobScopeCompetency.required_level)
+                      .join(JobScopeCompetency, JobScopeCompetency.competency_id == Competency.id)
+                      .where(JobScopeCompetency.job_scope_id == staff.job_scope_id,
+                             JobScopeCompetency.cycle_id == cycle_id)
+                      .order_by(Competency.id)).all()
+    return [(c, lvl) for c, lvl in rows]
+
+
+def _given(db: Session, staff: User, cycle_id: int) -> dict[int, int]:
+    return {r.competency_id: r.rating for r in db.scalars(
+        select(SupervisorRating).where(SupervisorRating.staff_id == staff.id,
+                                       SupervisorRating.cycle_id == cycle_id))}
 
 
 def _my_report(db: Session, supervisor: User, staff_id: int) -> User:
@@ -36,12 +45,11 @@ def my_team(cycle_id: int | None = None, sup: User = Depends(require_role("super
     team = db.scalars(select(User).where(User.supervisor_id == sup.id).order_by(User.name))
     out = []
     for s in team:
-        total = len(_questions(db, s))
-        rated = db.scalar(select(func.count()).select_from(SupervisorAnswer)
-                          .where(SupervisorAnswer.staff_id == s.id,
-                                 SupervisorAnswer.cycle_id == cycle.id))
-        out.append({"staff_id": s.id, "name": s.name, "rated": rated, "total": total,
-                    "status": rating_status(rated, total)})
+        comps = _competencies(db, s, cycle.id)
+        given = _given(db, s, cycle.id)
+        rated = sum(1 for c, _ in comps if c.id in given)
+        out.append({"staff_id": s.id, "name": s.name, "rated": rated, "total": len(comps),
+                    "status": rating_status(rated, len(comps))})
     return {"cycle": {"id": cycle.id, "year": cycle.year, "is_open": cycle.is_open},
             "team": out}
 
@@ -52,17 +60,11 @@ def get_ratings(staff_id: int, cycle_id: int | None = None,
                 db: Session = Depends(get_db)):
     staff = _my_report(db, sup, staff_id)
     cycle = get_cycle(db, cycle_id)
-    given = {r.question_id: r.answer for r in db.scalars(
-        select(SupervisorAnswer).where(SupervisorAnswer.staff_id == staff.id,
-                                       SupervisorAnswer.cycle_id == cycle.id))}
-    comp_names = {c.id: c.name for c in db.scalars(select(Competency))}
-    required = {j.competency_id: j.required_level for j in db.scalars(
-        select(JobScopeCompetency).where(JobScopeCompetency.job_scope_id == staff.job_scope_id))}
+    given = _given(db, staff, cycle.id)
     return {"staff": {"id": staff.id, "name": staff.name},
             "cycle": {"id": cycle.id, "year": cycle.year, "is_open": cycle.is_open},
-            "questions": [{"question_id": q.id, "competency": comp_names[q.competency_id],
-                           "required": required.get(q.competency_id), "text": q.text,
-                           "rating": given.get(q.id)} for q in _questions(db, staff)]}
+            "competencies": [{"competency_id": c.id, "competency": c.name, "required": lvl,
+                              "rating": given.get(c.id)} for c, lvl in _competencies(db, staff, cycle.id)]}
 
 
 @router.put("/{staff_id}")
@@ -72,20 +74,20 @@ def save_ratings(staff_id: int, body: RatingSubmit,
     staff = _my_report(db, sup, staff_id)
     cycle = get_cycle(db, body.cycle_id)
     assert_open(cycle)
-    valid = {q.id for q in _questions(db, staff)}
+    valid = {c.id for c, _ in _competencies(db, staff, cycle.id)}
     for r in body.ratings:
-        if r.question_id not in valid:
-            raise HTTPException(400, f"Question {r.question_id} is not in this staff member's job scope")
-    existing = {r.question_id: r for r in db.scalars(
-        select(SupervisorAnswer).where(SupervisorAnswer.staff_id == staff.id,
-                                       SupervisorAnswer.cycle_id == cycle.id))}
+        if r.competency_id not in valid:
+            raise HTTPException(400, f"Competency {r.competency_id} is not in this staff member's job scope")
+    existing = {r.competency_id: r for r in db.scalars(
+        select(SupervisorRating).where(SupervisorRating.staff_id == staff.id,
+                                       SupervisorRating.cycle_id == cycle.id))}
     for r in body.ratings:
-        row = existing.get(r.question_id)
+        row = existing.get(r.competency_id)
         if row:
-            row.answer = r.rating
+            row.rating = r.rating
             row.supervisor_id = sup.id
         else:
-            db.add(SupervisorAnswer(supervisor_id=sup.id, staff_id=staff.id, cycle_id=cycle.id,
-                                    question_id=r.question_id, answer=r.rating))
+            db.add(SupervisorRating(supervisor_id=sup.id, staff_id=staff.id, cycle_id=cycle.id,
+                                    competency_id=r.competency_id, rating=r.rating))
     db.commit()
     return {"saved": len(body.ratings)}

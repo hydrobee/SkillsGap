@@ -47,27 +47,30 @@ import { errMsg, initials } from '../core/util';
           <div class="card-head">
             <div>
               <h2>{{ s.staff.name }}</h2>
-              <p class="muted small">{{ ratedCount() }} of {{ s.questions.length }} statements rated</p>
+              <p class="muted small">{{ ratedCount() }} of {{ s.competencies.length }} competencies rated</p>
             </div>
           </div>
-          <p class="muted">Answer the same statements {{ s.staff.name }} answered, from your point of view.
-            For each one, rate how strongly you agree it describes {{ s.staff.name }}:
-            <b>1 (strongly disagree)</b> to <b>5 (strongly agree)</b>. Your answers carry 70% of the final score.</p>
+          <p class="muted">Rate each competency below from <b>1 (lowest)</b> to <b>5 (highest)</b>, based on how you
+            see {{ s.staff.name }}'s current level. The required level is the target for their job scope.
+            Your rating carries 70% of the final score.</p>
           @if (!s.cycle.is_open) { <p class="alert info">This cycle is closed, so ratings cannot be changed.</p> }
-          @for (q of s.questions; track q.question_id; let i = $index) {
+          @for (c of s.competencies; track c.competency_id) {
             <fieldset class="rate-row" [disabled]="!s.cycle.is_open">
-              <legend class="tag">{{ q.competency }}@if (q.required) { · required level {{ q.required }} }</legend>
-              <p class="q-text"><span class="q-num">{{ i + 1 }}.</span> “{{ q.text }}”</p>
-              <div class="scale" role="radiogroup">
+              <legend class="tag">Competency</legend>
+              <p class="q-text">
+                <b>{{ c.competency }}</b>
+                <span class="chip plain neutral">Required level {{ c.required }}</span>
+              </p>
+              <div class="scale" role="radiogroup" [attr.aria-label]="c.competency + ' rating'">
                 @for (n of scale; track n) {
-                  <label class="pill" [class.on]="ratings()[q.question_id] === n">
-                    <input type="radio" [name]="'q' + q.question_id" [value]="n"
-                           [checked]="ratings()[q.question_id] === n" (change)="pick(q.question_id, n)" />
+                  <label class="pill" [class.on]="ratings()[c.competency_id] === n">
+                    <input type="radio" [name]="'c' + c.competency_id" [value]="n"
+                           [checked]="ratings()[c.competency_id] === n" (change)="pick(c.competency_id, n)" />
                     {{ n }}
                   </label>
                 }
               </div>
-              <div class="scale-labels"><span>Strongly disagree</span><span>Strongly agree</span></div>
+              <div class="scale-labels"><span>1 · Lowest</span><span>5 · Highest</span></div>
             </fieldset>
           }
           <div class="actions">
@@ -111,14 +114,14 @@ export class RatingPage implements OnInit {
     this.api.ratings(staffId).subscribe({
       next: (r) => {
         this.selected.set(r);
-        this.ratings.set(Object.fromEntries(r.questions.map((q) => [q.question_id, q.rating])));
+        this.ratings.set(Object.fromEntries(r.competencies.map((c) => [c.competency_id, c.rating])));
       },
       error: (e) => this.error.set(errMsg(e)),
     });
   }
 
-  pick(questionId: number, n: number) {
-    this.ratings.update((r) => ({ ...r, [questionId]: n }));
+  pick(competencyId: number, n: number) {
+    this.ratings.update((r) => ({ ...r, [competencyId]: n }));
     this.message.set('');
   }
 
@@ -127,7 +130,7 @@ export class RatingPage implements OnInit {
     if (!s) return;
     const payload = Object.entries(this.ratings())
       .filter(([, r]) => r != null)
-      .map(([id, r]) => ({ question_id: Number(id), rating: r as number }));
+      .map(([id, r]) => ({ competency_id: Number(id), rating: r as number }));
     this.saving.set(true);
     this.error.set('');
     this.api.saveRatings(s.staff.id, s.cycle.id, payload).subscribe({

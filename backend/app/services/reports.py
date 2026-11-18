@@ -6,9 +6,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import (AssessmentCycle, Competency, Department, JobScope,
-                        JobScopeCompetency, Question, SupervisorAnswer,
+                        JobScopeCompetency, Question, SupervisorRating,
                         SurveyAnswer, User)
-from app.services.gap import competency_result, supervisor_score
+from app.services.gap import competency_result
 
 CATEGORIES = ("Critical", "Moderate", "Minor")
 
@@ -73,13 +73,14 @@ def user_rows(db: Session, user: User, cycle: AssessmentCycle) -> dict:
     answers = {a.question_id: a.answer for a in db.scalars(
         select(SurveyAnswer).where(SurveyAnswer.user_id == user.id,
                                    SurveyAnswer.cycle_id == cycle.id))}
-    sup_answers = {r.question_id: r.answer for r in db.scalars(
-        select(SupervisorAnswer).where(SupervisorAnswer.staff_id == user.id,
-                                       SupervisorAnswer.cycle_id == cycle.id))}
+    ratings = {r.competency_id: r.rating for r in db.scalars(
+        select(SupervisorRating).where(SupervisorRating.staff_id == user.id,
+                                       SupervisorRating.cycle_id == cycle.id))}
     scope_comps = db.execute(
         select(Competency, JobScopeCompetency.required_level)
         .join(JobScopeCompetency, JobScopeCompetency.competency_id == Competency.id)
-        .where(JobScopeCompetency.job_scope_id == user.job_scope_id)).all()
+        .where(JobScopeCompetency.job_scope_id == user.job_scope_id,
+               JobScopeCompetency.cycle_id == cycle.id)).all()
 
     rows = []
     for comp, required in scope_comps:
@@ -87,15 +88,15 @@ def user_rows(db: Session, user: User, cycle: AssessmentCycle) -> dict:
         given = [(answers[q.id], q.is_negative) for q in comp_qs if q.id in answers]
         if not given:
             continue
-        # supervisor score = average of their (reversed where negative) answers for this competency
-        sup = supervisor_score([(sup_answers[q.id], q.is_negative)
-                                for q in comp_qs if q.id in sup_answers])
+        # supervisor score = the 1-5 rating given for this competency (None until rated)
         rows.append({"competency_id": comp.id, "competency": comp.name,
-                     **competency_result(required, given, sup)})
+                     **competency_result(required, given, ratings.get(comp.id))})
     return {
         "rows": sort_rows(rows),
         "answered": len(answers), "questions": len(questions),
-        "rated": len(sup_answers), "rating_total": len(questions),
+        # ratings given vs competencies that need one (ratings for removed competencies don't count)
+        "rated": sum(1 for comp, _ in scope_comps if comp.id in ratings),
+        "rating_total": len(scope_comps),
     }
 
 

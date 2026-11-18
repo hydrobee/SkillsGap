@@ -72,14 +72,14 @@ def test_new_question_appears_in_survey_and_new_cycle(client):
 
 
 def test_force_delete_removes_question_and_its_answers(client):
-    hr, chris, aiman = (auth(client, f"{n}@demo.com") for n in ("hr", "chris", "aiman"))
+    hr, chris, bella = (auth(client, f"{n}@demo.com") for n in ("hr", "chris", "bella"))
     qid = client.post("/setup/questions", headers=hr, json={
         "job_scope_id": 1, "competency_id": 1, "text": "A throw-away question."}).json()["id"]
-    client.put("/survey/me", headers=chris, json={"answers": [{"question_id": qid, "answer": 3}]})
-    client.put("/rating/4", headers=aiman, json={"ratings": [{"question_id": qid, "rating": 3}]})
+    for who in (chris, bella):
+        client.put("/survey/me", headers=who, json={"answers": [{"question_id": qid, "answer": 3}]})
     r = client.delete(f"/setup/questions/{qid}", headers=hr)
     assert r.status_code == 409 and "2 answer(s)" in r.json()["detail"]
     assert client.delete(f"/setup/questions/{qid}?force=true", headers=hr).status_code == 200
-    ids = [q["question_id"] for q in client.get("/rating/4", headers=aiman).json()["questions"]]
+    ids = [q["id"] for q in client.get("/survey/me", headers=chris).json()["questions"]]
     assert qid not in ids
     assert client.delete(f"/setup/questions/{qid}", headers=hr).status_code == 404

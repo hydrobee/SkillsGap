@@ -4,14 +4,16 @@ export type Category = 'Critical' | 'Moderate' | 'Minor';
 export interface LoginResponse { access_token: string; token_type: string; role: Role; name: string; user_id: number; }
 export interface Session { token: string; role: Role; name: string; user_id: number; }
 export interface Cycle { id: number; year: number; is_open: boolean; }
+/** A cycle as listed on the HR setup screen, with what is stored for it. */
+export interface CycleSummary extends Cycle { levels: number; answers: number; ratings: number; }
 
 export interface SurveyQuestion { id: number; competency: string; text: string; answer: number | null; }
 export interface SurveyView { cycle: Cycle; answered: number; total: number; questions: SurveyQuestion[]; }
 
 export interface TeamMember { staff_id: number; name: string; rated: number; total: number; status: string; }
 export interface TeamView { cycle: Cycle; team: TeamMember[]; }
-export interface RatingQuestion { question_id: number; competency: string; required: number | null; text: string; rating: number | null; }
-export interface RatingView { staff: { id: number; name: string }; cycle: Cycle; questions: RatingQuestion[]; }
+export interface RatingItem { competency_id: number; competency: string; required: number; rating: number | null; }
+export interface RatingView { staff: { id: number; name: string }; cycle: Cycle; competencies: RatingItem[]; }
 
 export interface Person { id: number; name: string; role: Role; job_scope: string | null; department: string | null; }
 export interface NamedItem { id: number; name: string; }
@@ -48,12 +50,14 @@ export interface SetupQuestion {
   id: number; competency_id: number; competency: string; text: string;
   is_negative: boolean; answer_count: number;
 }
+/** A competency on the setup screen, with the job scopes that use it in any year. */
+export interface SetupCompetency extends NamedItem { used_by: string[]; }
 export interface SetupScope {
-  id: number; name: string;
+  id: number; name: string; staff_count: number;
   competencies: { competency_id: number; name: string; required_level: number }[];
   questions: SetupQuestion[];
 }
-export interface SetupOverview { job_scopes: SetupScope[]; competencies: NamedItem[]; departments: NamedItem[]; }
+export interface SetupOverview { cycle: Cycle; job_scopes: SetupScope[]; competencies: SetupCompetency[]; departments: NamedItem[]; }
 
 // ---------- HR dashboard ----------
 export type SurveyState = 'Complete' | 'In progress' | 'Not started';
