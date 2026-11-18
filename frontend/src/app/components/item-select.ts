@@ -55,6 +55,8 @@ export interface SelectItem { id: number; label: string; }
       background: var(--card); border: 1px solid var(--line-strong); border-radius: var(--radius-sm); box-shadow: var(--shadow-lg);
       font-size: .925rem; font-weight: 400; letter-spacing: normal; text-transform: none; color: var(--ink);
     }
+    /* the trigger fills its row on small screens, so a wider menu would run off the edge */
+    @media (max-width: 860px) { .menu { width: 100%; max-width: 100%; } }
     li { display: flex; align-items: center; justify-content: space-between; gap: .5rem; min-height: 2.1rem;
          padding: 0 .3rem 0 .6rem; border-radius: 6px; cursor: pointer; }
     li.active { background: var(--bg-subtle); }

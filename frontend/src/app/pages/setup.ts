@@ -39,15 +39,15 @@ import { errMsg } from '../core/util';
           <button class="btn primary" type="button" (click)="addCycle()">Add cycle</button>
         </div>
       </div>
-      <div class="table-wrap">
+      <div class="table-wrap cards">
         <table>
           <thead><tr><th>Year</th><th>Status</th><th class="actions-col"><span class="sr-only">Actions</span></th></tr></thead>
           <tbody>
             @for (c of cycles(); track c.id) {
               <tr>
-                <td class="strong">{{ c.year }}</td>
-                <td><span class="chip" [class.good]="c.is_open" [class.closed]="!c.is_open">{{ c.is_open ? 'Open' : 'Closed' }}</span></td>
-                <td>
+                <td class="strong row-title">{{ c.year }}</td>
+                <td data-label="Status"><span class="chip" [class.good]="c.is_open" [class.closed]="!c.is_open">{{ c.is_open ? 'Open' : 'Closed' }}</span></td>
+                <td class="row-actions">
                   <div class="cell-actions">
                     <button class="btn sm" type="button" (click)="toggleCycle(c)">{{ c.is_open ? 'Close cycle' : 'Reopen' }}</button>
                   </div>
@@ -107,20 +107,20 @@ import { errMsg } from '../core/util';
           <div class="card-section">
             <h3>Required levels for {{ s.name }} · {{ data()?.cycle?.year }}</h3>
             <p class="muted small">1 = basic, 5 = expert. Changes here apply to {{ data()?.cycle?.year }} only.</p>
-            <div class="table-wrap">
+            <div class="table-wrap cards">
               <table>
                 <thead><tr><th>Competency</th><th>Required level</th><th class="actions-col"><span class="sr-only">Actions</span></th></tr></thead>
                 <tbody>
                   @for (c of s.competencies; track c.competency_id) {
                     <tr>
-                      <td class="strong">{{ c.name }}</td>
-                      <td>
+                      <td class="strong row-title">{{ c.name }}</td>
+                      <td data-label="Required level">
                         <select class="sm" [attr.aria-label]="'Required level for ' + c.name" [ngModel]="c.required_level"
                                 (ngModelChange)="run(api.setLevel(s.id, c.competency_id, $event, yearId()))">
                           @for (n of levels; track n) { <option [ngValue]="n">{{ n }}</option> }
                         </select>
                       </td>
-                      <td>
+                      <td class="row-actions">
                         <div class="cell-actions">
                           <button class="btn danger sm" type="button" (click)="removeComp(s.id, c.competency_id, c.name)">Remove</button>
                         </div>
@@ -152,23 +152,25 @@ import { errMsg } from '../core/util';
 
           <div class="card-section">
             <h3>Survey questions for {{ s.name }}</h3>
-            <div class="table-wrap">
+            <div class="table-wrap cards wide">
               <table>
                 <thead><tr><th>Competency</th><th>Question</th><th>Wording</th><th class="actions-col"><span class="sr-only">Actions</span></th></tr></thead>
                 <tbody>
                   @for (q of s.questions; track q.id) {
                     <tr>
-                      <td class="strong nowrap">{{ q.competency }}</td>
-                      <td>
+                      <td class="strong row-title">{{ q.competency }}</td>
+                      <td class="stacked" data-label="Question">
                         @if (editingId() === q.id) {
                           <input class="wide" [attr.aria-label]="'Edit question ' + q.id" [(ngModel)]="editText" />
                         } @else { {{ q.text }} }
                       </td>
-                      <td class="nowrap">
-                        <span class="chip" [class.closed]="q.is_negative">{{ q.is_negative ? 'Negative' : 'Positive' }}</span>
-                        @if (q.answer_count) { <div class="muted small">{{ q.answer_count }} answers</div> }
+                      <td class="nowrap" data-label="Wording">
+                        <div>
+                          <span class="chip" [class.closed]="q.is_negative">{{ q.is_negative ? 'Negative' : 'Positive' }}</span>
+                          @if (q.answer_count) { <div class="muted small">{{ q.answer_count }} answers</div> }
+                        </div>
                       </td>
-                      <td>
+                      <td class="row-actions">
                         <div class="cell-actions">
                           @if (editingId() === q.id) {
                             <button class="btn primary sm" type="button" (click)="saveEdit(q.id)">Save</button>

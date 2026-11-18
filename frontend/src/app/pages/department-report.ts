@@ -46,7 +46,7 @@ import { downloadCsv, errMsg, initials } from '../core/util';
         </dl>
 
         @if (r.competencies.length) {
-          <div class="table-wrap">
+          <div class="table-wrap cards">
             <table>
               <thead>
                 <tr><th>Competency</th><th class="num">Required</th><th class="num">Avg actual</th>
@@ -55,13 +55,13 @@ import { downloadCsv, errMsg, initials } from '../core/util';
               <tbody>
                 @for (c of r.competencies; track c.competency) {
                   <tr>
-                    <td class="strong">{{ c.competency }}</td>
-                    <td class="num">{{ c.required | number: '1.0-2' }}</td>
-                    <td class="num">{{ c.avg_actual | number: '1.0-2' }}</td>
-                    <td class="num"><b>{{ c.avg_gap | number: '1.0-2' }}</b></td>
-                    <td class="num"><span class="count Critical" [class.zero]="c.critical === 0">{{ c.critical }}</span></td>
-                    <td class="num"><span class="count Moderate" [class.zero]="c.moderate === 0">{{ c.moderate }}</span></td>
-                    <td class="num"><span class="count Minor" [class.zero]="c.minor === 0">{{ c.minor }}</span></td>
+                    <td class="strong row-title">{{ c.competency }}</td>
+                    <td class="num" data-label="Required">{{ c.required | number: '1.0-2' }}</td>
+                    <td class="num" data-label="Avg actual">{{ c.avg_actual | number: '1.0-2' }}</td>
+                    <td class="num" data-label="Avg gap"><b>{{ c.avg_gap | number: '1.0-2' }}</b></td>
+                    <td class="num" data-label="Critical"><span class="count Critical" [class.zero]="c.critical === 0">{{ c.critical }}</span></td>
+                    <td class="num" data-label="Moderate"><span class="count Moderate" [class.zero]="c.moderate === 0">{{ c.moderate }}</span></td>
+                    <td class="num" data-label="Minor"><span class="count Minor" [class.zero]="c.minor === 0">{{ c.minor }}</span></td>
                   </tr>
                 }
               </tbody>
