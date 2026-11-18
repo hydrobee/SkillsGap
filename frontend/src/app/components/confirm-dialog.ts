@@ -23,11 +23,13 @@ import { AfterViewInit, Component, ElementRef, input, output, viewChild } from '
     .backdrop { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 1rem;
                 background: rgba(15, 23, 42, .5); }
     .dialog { width: min(28rem, 100%); background: var(--card); color: var(--ink); border: 1px solid var(--line);
-              border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); padding: 1.5rem; }
+              border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); padding: 1.5rem;
+              max-height: calc(100dvh - 2rem); overflow-y: auto; overflow-wrap: anywhere; }
     h2 { margin: 0 0 .75rem; font-size: 1.15rem; }
     .body { color: var(--ink-2); font-size: .95rem; line-height: 1.5; }
-    .actions { display: flex; justify-content: flex-end; gap: .5rem; margin-top: 1.5rem; }
-    .btn.confirm { background: var(--danger); border-color: var(--danger); color: #fff; }
+    .actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; margin-top: 1.5rem; }
+    @media (max-width: 600px) { .actions .btn { flex: 1 1 auto; } }
+    .btn.confirm { background: var(--danger); border-color: var(--danger); color: var(--danger-ink); }
     .btn.confirm:hover:not(:disabled) { background: var(--danger); filter: brightness(.92); }
   `],
 })

@@ -79,7 +79,7 @@ import { downloadCsv, errMsg, initials } from '../core/util';
         </dl>
 
         @if (r.rows.length) {
-          <div class="table-wrap">
+          <div class="table-wrap cards">
             <table>
               <thead>
                 <tr><th>Competency</th><th class="num">Required</th>
@@ -88,13 +88,13 @@ import { downloadCsv, errMsg, initials } from '../core/util';
               <tbody>
                 @for (row of r.rows; track row.competency_id) {
                   <tr>
-                    <td class="strong">{{ row.competency }}</td>
-                    <td class="num">{{ row.required }}</td>
+                    <td class="strong row-title">{{ row.competency }}</td>
+                    <td class="num" data-label="Required">{{ row.required }}</td>
                     <!-- <td class="num muted">{{ row.self | number: '1.0-2' }}</td> -->
                     <!-- <td class="num muted">{{ row.supervisor === null ? 'pending' : row.supervisor }}</td> -->
-                    <td class="num">{{ row.actual | number: '1.0-2' }}</td>
-                    <td class="num"><b>{{ row.gap | number: '1.0-2' }}</b></td>
-                    <td><span class="badge" [class]="row.category">{{ row.category }}</span></td>
+                    <td class="num" data-label="Actual">{{ row.actual | number: '1.0-2' }}</td>
+                    <td class="num" data-label="Gap"><b>{{ row.gap | number: '1.0-2' }}</b></td>
+                    <td data-label="Category"><span class="badge" [class]="row.category">{{ row.category }}</span></td>
                   </tr>
                 }
               </tbody>

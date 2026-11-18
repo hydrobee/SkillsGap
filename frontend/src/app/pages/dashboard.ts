@@ -136,7 +136,7 @@ interface Tip { x: number; y: number; title: string; lines: string[]; }
             <p class="muted small">Progress and gaps per department. Open a department for the full report.</p>
           </div>
         </div>
-        <div class="table-wrap">
+        <div class="table-wrap cards wide">
           <table>
             <thead>
               <tr><th>Department</th><th class="num">Staff</th><th>Survey done</th><th>Ratings done</th>
@@ -146,15 +146,15 @@ interface Tip { x: number; y: number; title: string; lines: string[]; }
             <tbody>
               @for (x of d.departments; track x.id) {
                 <tr>
-                  <td class="strong nowrap">{{ x.name }}</td>
-                  <td class="num">{{ x.staff_total }}</td>
-                  <td>
+                  <td class="strong row-title">{{ x.name }}</td>
+                  <td class="num" data-label="Staff">{{ x.staff_total }}</td>
+                  <td data-label="Survey done">
                     <div class="mini-progress">
                       <div class="progress"><span [style.width.%]="pct(x.survey_complete, x.staff_total)"></span></div>
                       <span class="small nowrap">{{ x.survey_complete }}/{{ x.staff_total }}</span>
                     </div>
                   </td>
-                  <td>
+                  <td data-label="Ratings done">
                     @if (x.rating_needed) {
                       <div class="mini-progress">
                         <div class="progress"><span [style.width.%]="pct(x.rating_complete, x.rating_needed)"></span></div>
@@ -162,10 +162,10 @@ interface Tip { x: number; y: number; title: string; lines: string[]; }
                       </div>
                     } @else { <span class="muted small">—</span> }
                   </td>
-                  <td class="num">{{ x.avg_gap === null ? '—' : (x.avg_gap | number: '1.2-2') }}</td>
-                  <td class="num"><span class="count Critical" [class.zero]="x.critical_staff === 0">{{ x.critical_staff }}</span></td>
-                  <td class="nowrap">{{ x.top_priority ?? '—' }}</td>
-                  <td>
+                  <td class="num" data-label="Avg gap">{{ x.avg_gap === null ? '—' : (x.avg_gap | number: '1.2-2') }}</td>
+                  <td class="num" data-label="Critical staff"><span class="count Critical" [class.zero]="x.critical_staff === 0">{{ x.critical_staff }}</span></td>
+                  <td data-label="Top priority">{{ x.top_priority ?? '—' }}</td>
+                  <td class="row-actions">
                     <div class="cell-actions">
                       <a class="btn ghost sm" [routerLink]="['/reports/department']" [queryParams]="{ dept: x.id, cycle: d.cycle.id }">View</a>
                     </div>
