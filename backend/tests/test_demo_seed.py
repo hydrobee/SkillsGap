@@ -79,7 +79,7 @@ def test_ict_department_report_with_demo_data(db):
     dept = person(db, "bella@demo.com").department_id
     from app.models import Department
     rep = department_report(db, db.get(Department, dept), db.scalar(select(AssessmentCycle)))
-    assert (rep["header"]["staff_assessed"], rep["header"]["staff_total"]) == (2, 3)
+    assert (rep["header"]["staff_assessed"], rep["header"]["staff_total"]) == (2, 4)   # Nadia has no demo answers
     assert rep["header"]["supervisor_ratings_incomplete"] == 0
     sec = next(c for c in rep["competencies"] if c["competency"] == "Security")
     assert (sec["critical"], sec["moderate"], sec["avg_gap"]) == (1, 1, 1.65)

@@ -54,8 +54,8 @@ npm install
 npx ng serve                       # http://localhost:4200
 ```
 
-**Demo accounts** (password `password123`): `hr@demo.com`, `aiman@demo.com` (supervisor of Bella and Chris),
-`bella@demo.com` (staff). Others: `dayang@demo.com`, `edwin@demo.com`, `farah@demo.com`, `gina@demo.com`.
+**Demo accounts** (password `password123`): `hr@demo.com`, `aiman@demo.com` (supervisor of Bella, Chris and Nadia),
+`bella@demo.com` (staff). Others: `nadia@demo.com`, `dayang@demo.com`, `edwin@demo.com`, `astrid@demo.com`, `farah@demo.com`, `gina@demo.com`.
 
 ## Tests
 ```powershell

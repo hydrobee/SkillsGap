@@ -63,8 +63,8 @@ def test_missing_supervisor_rating_uses_self_only(client, filled):
 def test_department_report(client, filled):
     rep = client.get("/reports/department/1", headers=filled["hr"]).json()
     assert rep["header"]["department"] == "ICT Unit"
-    # Bella + Chris answered, Aiman (supervisor in the unit) did not
-    assert rep["header"]["staff_assessed"] == 2 and rep["header"]["staff_total"] == 3
+    # Bella + Chris answered; Aiman (supervisor in the unit) and Nadia did not
+    assert rep["header"]["staff_assessed"] == 2 and rep["header"]["staff_total"] == 4
     assert rep["header"]["supervisor_ratings_incomplete"] == 1
     sec = next(c for c in rep["competencies"] if c["competency"] == "Security")
     # Bella gap 2.3 (Critical); Chris self-only 5 -> gap 0 (Minor)
@@ -87,8 +87,8 @@ def test_access_rules(client, filled):
 def test_people_lists_respect_role(client, filled):
     names = lambda who: sorted(p["name"] for p in client.get("/reports/people", headers=filled[who]).json())
     assert names("bella") == ["Bella"]
-    assert names("aiman") == ["Aiman (ICT Supervisor)", "Bella", "Chris"]
-    assert len(names("hr")) == 7
+    assert names("aiman") == ["Aiman (ICT Supervisor)", "Bella", "Chris", "Nadia"]
+    assert len(names("hr")) == 9
 
 
 def test_any_user_can_list_cycles(client, filled):
@@ -132,16 +132,16 @@ def test_hr_dashboard(client, filled):
     assert client.get("/reports/dashboard", headers=filled["bella"]).status_code == 403
     d = client.get("/reports/dashboard", headers=filled["hr"]).json()
     t = d["totals"]
-    # 7 people have a job scope; only Bella and Chris answered (all 5 questions)
-    assert (t["staff"], t["survey_complete"], t["survey_not_started"]) == (7, 2, 5)
-    # Bella, Chris, Edwin, Gina have a supervisor; only Bella is fully rated
-    assert (t["rating_needed"], t["rating_complete"]) == (4, 1)
+    # 9 people have a job scope; only Bella and Chris answered (all 5 questions)
+    assert (t["staff"], t["survey_complete"], t["survey_not_started"]) == (9, 2, 7)
+    # Bella, Chris, Nadia, Edwin, Astrid, Gina have a supervisor; only Bella is fully rated
+    assert (t["rating_needed"], t["rating_complete"]) == (6, 1)
     assert t["assessed"] == 2 and t["staff_with_critical"] == 1   # Bella: Security gap 2.3
     assert sum(d["categories"].values()) == 6                    # 3 competencies x 2 people
     ict = next(x for x in d["departments"] if x["name"] == "ICT Unit")
-    assert (ict["staff_total"], ict["survey_complete"], ict["top_priority"]) == (3, 2, "Security")
+    assert (ict["staff_total"], ict["survey_complete"], ict["top_priority"]) == (4, 2, "Security")
     assert d["priorities"][0]["competency"] == "Security"
     assert d["attention"][0]["name"] == "Bella"
     aiman = next(s for s in d["pending_supervisors"] if s["name"].startswith("Aiman"))
-    assert (aiman["pending"], aiman["team"]) == (1, 2)           # Chris not rated yet
-    assert {p["name"] for p in d["survey_pending"]} >= {"Edwin", "Gina"}
+    assert (aiman["pending"], aiman["team"]) == (2, 3)           # Chris and Nadia not rated yet
+    assert {p["name"] for p in d["survey_pending"]} >= {"Nadia", "Edwin", "Astrid", "Gina"}
