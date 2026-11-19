@@ -50,8 +50,10 @@ USERS = [
     ("Aiman (ICT Supervisor)", "aiman@demo.com", "supervisor", "ICT Unit", "System Developer", None),
     ("Bella", "bella@demo.com", "staff", "ICT Unit", "System Developer", "aiman@demo.com"),
     ("Chris", "chris@demo.com", "staff", "ICT Unit", "System Developer", "aiman@demo.com"),
+    ("Nadia", "nadia@demo.com", "staff", "ICT Unit", "System Developer", "aiman@demo.com"),
     ("Dayang (Academic Supervisor)", "dayang@demo.com", "supervisor", "Academic", "Lecturer", None),
     ("Edwin", "edwin@demo.com", "staff", "Academic", "Lecturer", "dayang@demo.com"),
+    ("Astrid", "astrid@demo.com", "staff", "Academic", "Lecturer", "dayang@demo.com"),
     ("Farah (Admin Supervisor)", "farah@demo.com", "supervisor", "Administration", "Admin Officer", None),
     ("Gina", "gina@demo.com", "staff", "Administration", "Admin Officer", "farah@demo.com"),
 ]
@@ -106,9 +108,20 @@ def seed_base(db) -> bool:
         depts[dept_name] = Department(name=dept_name)
         db.add(depts[dept_name])
     db.flush()
+    seed_users(db)
+    return True
 
-    by_email = {}
+
+def seed_users(db) -> list[str]:
+    """Create every user in USERS whose email is not in the database yet, so users added to
+    the list later still get created on an already-seeded database. Returns the new emails."""
+    depts = {d.name: d for d in db.scalars(select(Department))}
+    scopes = {s.name: s for s in db.scalars(select(JobScope))}
+    by_email = {u.email: u for u in db.scalars(select(User))}
+    added = []
     for name, email, role, dept, scope, sup_email in USERS:
+        if email in by_email:
+            continue
         u = User(name=name, email=email, role=role,
                  password_hash=hash_password(PASSWORD),
                  department_id=depts[dept].id if dept else None,
@@ -117,8 +130,9 @@ def seed_base(db) -> bool:
         db.add(u)
         db.flush()
         by_email[email] = u
+        added.append(email)
     db.commit()
-    return True
+    return added
 
 
 def seed_demo(db) -> bool:
@@ -152,7 +166,11 @@ def run(demo: bool = False):
         if seed_base(db):
             print(f"Seeded. All demo users use password: {PASSWORD}")
         else:
-            print("Already seeded, skipping.")
+            added = seed_users(db)
+            if added:
+                print(f"Already seeded. Added new users: {', '.join(added)} (password: {PASSWORD})")
+            else:
+                print("Already seeded, skipping.")
         if demo:
             if seed_demo(db):
                 print("Demo data added: sample survey answers and supervisor ratings for the latest cycle.")

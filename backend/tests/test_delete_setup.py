@@ -24,7 +24,7 @@ def test_overview_reports_what_depends_on_each_item(client):
     hr = auth(client, "hr@demo.com")
     ov = overview(client, hr)
     dev = next(s for s in ov["job_scopes"] if s["name"] == "System Developer")
-    assert dev["staff_count"] == 3
+    assert dev["staff_count"] == 4   # Aiman, Bella, Chris, Nadia
     prog = next(c for c in ov["competencies"] if c["name"] == "Programming")
     assert prog["used_by"] == ["System Developer"]
 
